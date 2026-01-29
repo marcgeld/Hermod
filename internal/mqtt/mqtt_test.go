@@ -78,15 +78,15 @@ func TestMessageHandler(t *testing.T) {
 	}
 }
 
-func TestMessageHandlerWithError(t *testing.T) {
-	// Test that MessageHandler can return errors
+func TestMessageHandlerReturnsNil(t *testing.T) {
+	// Test that MessageHandler can return nil for successful processing
 	var handler MessageHandler = func(topic string, payload []byte) error {
 		return nil
 	}
 
 	err := handler("test/topic", []byte("test"))
 	if err != nil {
-		t.Errorf("Handler should return nil for successful processing")
+		t.Errorf("Handler should return nil for successful processing, got: %v", err)
 	}
 }
 

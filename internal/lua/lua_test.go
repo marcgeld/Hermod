@@ -288,22 +288,33 @@ end
 	defer transformer.Close()
 
 	// Run multiple transforms concurrently
+	// Use channels to collect errors from goroutines safely
+	errChan := make(chan error, 10)
 	done := make(chan bool, 10)
+
 	for i := 0; i < 10; i++ {
 		go func(n int) {
+			defer func() { done <- true }()
 			input := map[string]interface{}{
 				"id": float64(n),
 			}
-			_, err := transformer.Transform(input)
-			if err != nil {
-				t.Errorf("Transform() error = %v", err)
+			if err := func() error {
+				_, err := transformer.Transform(input)
+				return err
+			}(); err != nil {
+				errChan <- err
 			}
-			done <- true
 		}(i)
 	}
 
 	// Wait for all goroutines to complete
 	for i := 0; i < 10; i++ {
 		<-done
+	}
+	close(errChan)
+
+	// Check for any errors
+	for err := range errChan {
+		t.Errorf("Transform() error = %v", err)
 	}
 }

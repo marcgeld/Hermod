@@ -213,8 +213,8 @@ go test -v ./internal/mqtt/
 ```
 
 The test suite covers:
-- **Config package**: TOML configuration loading and validation (100% coverage)
-- **Lua package**: Script loading, data transformation, and concurrent access (81.4% coverage)
+- **Config package**: TOML configuration loading and validation
+- **Lua package**: Script loading, data transformation, and concurrent access
 - **Pipeline package**: Message processing with JSON/non-JSON payloads and transformation integration
 - **Storage package**: SQL injection prevention and data validation
 - **MQTT package**: Configuration and message handler functionality

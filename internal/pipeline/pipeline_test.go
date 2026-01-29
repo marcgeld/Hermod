@@ -11,6 +11,10 @@ import (
 )
 
 // StorageInterface defines the interface needed by Pipeline for testing
+// Note: This interface is defined here for testing purposes only.
+// The actual Pipeline uses *storage.Storage directly, which doesn't expose
+// an interface. This testPipeline struct and interface allow us to test
+// the pipeline logic without requiring a real database connection.
 type StorageInterface interface {
 	Insert(ctx context.Context, data map[string]interface{}) error
 	Close()
@@ -32,7 +36,9 @@ func (m *mockStorage) Insert(ctx context.Context, data map[string]interface{}) e
 
 func (m *mockStorage) Close() {}
 
-// testPipeline wraps Pipeline for testing with mock storage
+// testPipeline wraps Pipeline for testing with mock storage.
+// This duplicates the Pipeline.Process logic to allow testing without a real database.
+// When modifying the real Pipeline, ensure this test version stays in sync.
 type testPipeline struct {
 	transformer *lua.Transformer
 	storage     StorageInterface
@@ -145,8 +151,8 @@ func TestProcessWithNonJSONPayload(t *testing.T) {
 		t.Errorf("Expected topic %s, got %v", topic, data["topic"])
 	}
 
-	if payload, ok := data["payload"].(string); !ok || payload != "not json data" {
-		t.Errorf("Expected payload to be stored as raw string")
+	if payloadStr, ok := data["payload"].(string); !ok || payloadStr != "not json data" {
+		t.Errorf("Expected payload to be stored as raw string, got: %v", data["payload"])
 	}
 }
 
@@ -233,6 +239,24 @@ end
 	err = pipeline.Process(context.Background(), topic, payload)
 	if err == nil {
 		t.Error("Process() should return error when transformation fails")
+	}
+}
+
+func TestProcessWithStorageError(t *testing.T) {
+	mockStore := &mockStorage{
+		insertError: context.DeadlineExceeded,
+	}
+	pipeline := newTestPipeline(nil, mockStore)
+
+	topic := "sensors/test"
+	payload := []byte(`{"value": 42}`)
+
+	err := pipeline.Process(context.Background(), topic, payload)
+	if err == nil {
+		t.Error("Process() should return error when storage fails")
+	}
+	if err != context.DeadlineExceeded {
+		t.Errorf("Process() should return the storage error, got: %v", err)
 	}
 }
 
