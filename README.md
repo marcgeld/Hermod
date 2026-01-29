@@ -64,6 +64,10 @@ pool_size = 10
 [pipeline]
 lua_script = "examples/transform.lua"  # Optional
 table_name = "mqtt_messages"
+
+[logging]
+level = "INFO"       # DEBUG, INFO, or ERROR
+dry_run = false      # Set to true to log SQL instead of executing
 ```
 
 ### Configuration Options
@@ -88,6 +92,10 @@ table_name = "mqtt_messages"
 #### Pipeline Section
 - `lua_script`: Path to Lua transformation script (optional, leave empty to skip transformation)
 - `table_name`: Name of the database table to insert records into
+
+#### Logging Section
+- `level`: Log level - `DEBUG` (verbose, shows message content), `INFO` (general events), or `ERROR` (errors only)
+- `dry_run`: If `true`, logs SQL statements instead of executing them (useful for testing without database connection)
 
 ## Database Setup
 
@@ -142,6 +150,41 @@ end
 ```
 
 See `examples/transform.lua` for a complete example.
+
+## Logging
+
+Hermod uses Go's standard logging framework with configurable log levels:
+
+### Log Levels
+
+- **DEBUG**: Verbose logging that shows message content when it arrives and after transformation. Useful for debugging data flow and transformation issues.
+- **INFO**: General events like MQTT connections, subscriptions, and successful message processing.
+- **ERROR**: Only errors are logged.
+
+### Dry-Run Mode
+
+Set `dry_run = true` in the `[logging]` section to run Hermod without connecting to the database. In this mode:
+- SQL statements are logged instead of being executed
+- No database connection is required
+- Useful for testing configurations and transformations
+
+Example configuration for debugging:
+
+```toml
+[logging]
+level = "DEBUG"
+dry_run = true
+```
+
+Example output with DEBUG level:
+```
+DEBUG: Received message from topic 'sensors/temperature': {"temperature": 25.5}
+DEBUG: Transforming message data
+DEBUG: Message transformed: map[temperature_celsius:25.5 temperature_fahrenheit:77.9]
+INFO: SQL (dry-run): INSERT INTO mqtt_messages (temperature_celsius, temperature_fahrenheit, topic) VALUES ($1, $2, $3)
+DEBUG: SQL Values: [25.5 77.9 sensors/temperature]
+INFO: Successfully processed message from topic sensors/temperature
+```
 
 ## Usage
 

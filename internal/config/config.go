@@ -12,6 +12,7 @@ type Config struct {
 	MQTT     MQTTConfig     `toml:"mqtt"`
 	Database DatabaseConfig `toml:"database"`
 	Pipeline PipelineConfig `toml:"pipeline"`
+	Logging  LoggingConfig  `toml:"logging"`
 }
 
 // MQTTConfig holds MQTT broker configuration
@@ -39,6 +40,12 @@ type DatabaseConfig struct {
 type PipelineConfig struct {
 	LuaScript string `toml:"lua_script"`
 	TableName string `toml:"table_name"`
+}
+
+// LoggingConfig holds logging configuration
+type LoggingConfig struct {
+	Level  string `toml:"level"`  // DEBUG, INFO, or ERROR
+	DryRun bool   `toml:"dry_run"` // If true, log SQL instead of executing
 }
 
 // Load reads and parses the TOML configuration file

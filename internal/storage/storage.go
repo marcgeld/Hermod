@@ -9,18 +9,23 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marcgeld/Hermod/internal/logger"
 )
 
 // Storage handles database operations
 type Storage struct {
 	pool      *pgxpool.Pool
 	tableName string
+	dryRun    bool
+	logger    *logger.Logger
 }
 
 // Config holds storage configuration
 type Config struct {
 	ConnectionString string
 	TableName        string
+	DryRun           bool
+	Logger           *logger.Logger
 }
 
 var (
@@ -37,6 +42,23 @@ func New(ctx context.Context, cfg Config) (*Storage, error) {
 		return nil, fmt.Errorf("invalid table name: must contain only alphanumeric characters and underscores")
 	}
 
+	// Use a default logger if none provided
+	log := cfg.Logger
+	if log == nil {
+		log = logger.New(logger.INFO)
+	}
+
+	// If dry-run mode, don't connect to database
+	if cfg.DryRun {
+		log.Info("Storage initialized in dry-run mode (will log SQL instead of executing)")
+		return &Storage{
+			pool:      nil,
+			tableName: cfg.TableName,
+			dryRun:    true,
+			logger:    log,
+		}, nil
+	}
+
 	pool, err := pgxpool.New(ctx, cfg.ConnectionString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
@@ -51,6 +73,8 @@ func New(ctx context.Context, cfg Config) (*Storage, error) {
 	return &Storage{
 		pool:      pool,
 		tableName: cfg.TableName,
+		dryRun:    false,
+		logger:    log,
 	}, nil
 }
 
@@ -100,6 +124,13 @@ func (s *Storage) Insert(ctx context.Context, data map[string]interface{}) error
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
+
+	// In dry-run mode, just log the SQL
+	if s.dryRun {
+		s.logger.Infof("SQL (dry-run): %s", query)
+		s.logger.Debugf("SQL Values: %v", values)
+		return nil
+	}
 
 	_, err := s.pool.Exec(ctx, query, values...)
 	if err != nil {
