@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/marcgeld/Hermod/internal/config"
+	"github.com/marcgeld/Hermod/internal/logger"
 	"github.com/marcgeld/Hermod/internal/lua"
 	"github.com/marcgeld/Hermod/internal/mqtt"
 	"github.com/marcgeld/Hermod/internal/pipeline"
@@ -27,19 +28,33 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Initialize logger
+	logLevel := logger.INFO
+	if cfg.Logging.Level != "" {
+		logLevel = logger.ParseLevel(cfg.Logging.Level)
+	}
+	appLogger := logger.New(logLevel)
+	appLogger.Infof("Log level set to: %s", cfg.Logging.Level)
+
 	ctx := context.Background()
 
 	// Initialize storage
 	storageCfg := storage.Config{
 		ConnectionString: cfg.Database.ConnectionString(),
 		TableName:        cfg.Pipeline.TableName,
+		DryRun:           cfg.Logging.DryRun,
+		Logger:           appLogger,
 	}
 	store, err := storage.New(ctx, storageCfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 	defer store.Close()
-	log.Println("Storage initialized successfully")
+	if cfg.Logging.DryRun {
+		appLogger.Info("Running in dry-run mode - SQL will be logged instead of executed")
+	} else {
+		appLogger.Info("Storage initialized successfully")
+	}
 
 	// Initialize Lua transformer if script is provided
 	var transformer *lua.Transformer
@@ -49,11 +64,11 @@ func main() {
 			log.Fatalf("Failed to initialize Lua transformer: %v", err)
 		}
 		defer transformer.Close()
-		log.Println("Lua transformer initialized successfully")
+		appLogger.Info("Lua transformer initialized successfully")
 	}
 
 	// Initialize pipeline
-	pipe := pipeline.New(transformer, store)
+	pipe := pipeline.New(transformer, store, appLogger)
 
 	// Initialize MQTT client
 	mqttCfg := mqtt.Config{
@@ -62,6 +77,7 @@ func main() {
 		Username: cfg.MQTT.Username,
 		Password: cfg.MQTT.Password,
 		QoS:      cfg.MQTT.QoS,
+		Logger:   appLogger,
 	}
 	client, err := mqtt.New(mqttCfg)
 	if err != nil {
@@ -79,12 +95,12 @@ func main() {
 		}
 	}
 
-	log.Println("Hermod is running. Press Ctrl+C to exit.")
+	appLogger.Info("Hermod is running. Press Ctrl+C to exit.")
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan
 
-	log.Println("Shutting down Hermod...")
+	appLogger.Info("Shutting down Hermod...")
 }
