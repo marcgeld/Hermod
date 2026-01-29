@@ -1,0 +1,24 @@
+# Hermod Configuration Example
+
+[mqtt]
+broker = "tcp://localhost:1883"
+client_id = "hermod-client"
+username = ""
+password = ""
+topics = ["sensors/#", "devices/+/telemetry"]
+qos = 1
+
+[database]
+host = "localhost"
+port = 5432
+user = "hermod"
+password = "hermod_password"
+database = "hermod"
+sslmode = "disable"
+pool_size = 10
+
+[pipeline]
+# Path to Lua transformation script (optional)
+# Leave empty to skip transformation
+lua_script = "examples/transform.lua"
+table_name = "mqtt_messages"
