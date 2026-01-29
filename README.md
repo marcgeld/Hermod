@@ -184,9 +184,40 @@ Hermod/
 
 ### Testing
 
+Run all tests:
+
 ```bash
 go test ./...
 ```
+
+Run tests with verbose output:
+
+```bash
+go test -v ./...
+```
+
+Run tests with coverage:
+
+```bash
+go test -cover ./...
+```
+
+Run tests for a specific package:
+
+```bash
+go test -v ./internal/config/
+go test -v ./internal/lua/
+go test -v ./internal/pipeline/
+go test -v ./internal/storage/
+go test -v ./internal/mqtt/
+```
+
+The test suite covers:
+- **Config package**: TOML configuration loading and validation
+- **Lua package**: Script loading, data transformation, and concurrent access
+- **Pipeline package**: Message processing with JSON/non-JSON payloads and transformation integration
+- **Storage package**: SQL injection prevention and data validation
+- **MQTT package**: Configuration and message handler functionality
 
 ### Dependencies
 
