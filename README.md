@@ -181,6 +181,13 @@ Hermod/
 ├── go.sum
 └── README.md
 ```
+### Building
+
+Build the application:
+
+```bash
+go build ./cmd/hermod
+```
 
 ### Testing
 
