@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS mqtt_messages (
     
     -- Metadata
     processed_by TEXT,
-    processed_at TEXT,
+    processed_at TIMESTAMPTZ,
     
     -- Additional fields can be stored in JSONB
     metadata JSONB

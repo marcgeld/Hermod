@@ -67,7 +67,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize MQTT client: %v", err)
 	}
-	defer client.Disconnect(ctx)
+	defer client.Disconnect()
 
 	// Subscribe to topics
 	for _, topic := range cfg.MQTT.Topics {

@@ -30,7 +30,7 @@ function transform(data)
     
     -- Add metadata
     result.processed_by = "hermod"
-    result.processed_at = os.date("%Y-%m-%d %H:%M:%S")
+    result.processed_at = os.time()  -- Unix timestamp for proper database storage
     
     return result
 end

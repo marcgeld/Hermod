@@ -1,7 +1,6 @@
 package mqtt
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
@@ -79,8 +78,7 @@ func (c *Client) Subscribe(topic string, qos byte, handler MessageHandler) error
 }
 
 // Disconnect disconnects from the MQTT broker
-func (c *Client) Disconnect(ctx context.Context) error {
+func (c *Client) Disconnect() {
 	c.client.Disconnect(250)
 	log.Println("Disconnected from MQTT broker")
-	return nil
 }

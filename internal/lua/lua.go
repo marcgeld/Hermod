@@ -3,14 +3,17 @@ package lua
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"sync"
 
 	lua "github.com/yuin/gopher-lua"
 )
 
 // Transformer handles Lua script execution for message transformation
 type Transformer struct {
-	state  *lua.LState
-	script string
+	scriptPath string
+	mu         sync.Mutex // Protects against concurrent access to Lua state
+	state      *lua.LState
 }
 
 // New creates a new Lua transformer
@@ -24,13 +27,17 @@ func New(scriptPath string) (*Transformer, error) {
 	}
 
 	return &Transformer{
-		state:  L,
-		script: scriptPath,
+		scriptPath: scriptPath,
+		state:      L,
 	}, nil
 }
 
 // Transform executes the Lua transformation on the input data
 func (t *Transformer) Transform(data map[string]interface{}) (map[string]interface{}, error) {
+	// Lock to ensure thread-safe access to Lua state
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	// Get the transform function from Lua
 	fn := t.state.GetGlobal("transform")
 	if fn.Type() != lua.LTFunction {
@@ -100,7 +107,11 @@ func (t *Transformer) interfaceToLValue(i interface{}) lua.LValue {
 		return lua.LNil
 	default:
 		// Try to marshal to JSON and back for complex types
-		data, _ := json.Marshal(v)
+		data, err := json.Marshal(v)
+		if err != nil {
+			log.Printf("Warning: failed to marshal value to JSON: %v", err)
+			return lua.LString(fmt.Sprintf("%v", v))
+		}
 		return lua.LString(string(data))
 	}
 }

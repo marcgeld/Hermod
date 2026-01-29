@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,8 +23,20 @@ type Config struct {
 	TableName        string
 }
 
+var (
+	// validTableName ensures table name is safe for SQL
+	validTableName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	// validColumnName ensures column name is safe for SQL
+	validColumnName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+)
+
 // New creates a new storage instance
 func New(ctx context.Context, cfg Config) (*Storage, error) {
+	// Validate table name to prevent SQL injection
+	if !validTableName.MatchString(cfg.TableName) {
+		return nil, fmt.Errorf("invalid table name: must contain only alphanumeric characters and underscores")
+	}
+
 	pool, err := pgxpool.New(ctx, cfg.ConnectionString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
@@ -46,16 +60,27 @@ func (s *Storage) Insert(ctx context.Context, data map[string]interface{}) error
 		return fmt.Errorf("empty data provided")
 	}
 
-	// Build the INSERT query dynamically
-	columns := make([]string, 0, len(data))
-	placeholders := make([]string, 0, len(data))
-	values := make([]interface{}, 0, len(data))
-	i := 1
+	// Sort keys to ensure consistent column ordering
+	keys := make([]string, 0, len(data))
+	for key := range data {
+		// Validate column name to prevent SQL injection
+		if !validColumnName.MatchString(key) {
+			return fmt.Errorf("invalid column name '%s': must contain only alphanumeric characters and underscores", key)
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
 
-	for key, value := range data {
+	// Build the INSERT query with validated identifiers
+	columns := make([]string, 0, len(keys))
+	placeholders := make([]string, 0, len(keys))
+	values := make([]interface{}, 0, len(keys))
+
+	for i, key := range keys {
 		columns = append(columns, key)
-		placeholders = append(placeholders, fmt.Sprintf("$%d", i))
-
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i+1))
+		
+		value := data[key]
 		// Convert complex types to JSON
 		switch v := value.(type) {
 		case map[string]interface{}, []interface{}:
@@ -67,7 +92,6 @@ func (s *Storage) Insert(ctx context.Context, data map[string]interface{}) error
 		default:
 			values = append(values, value)
 		}
-		i++
 	}
 
 	query := fmt.Sprintf(
