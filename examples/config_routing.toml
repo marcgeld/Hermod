@@ -1,0 +1,42 @@
+# Hermod Configuration with Routing Example
+
+[mqtt]
+broker = "tcp://localhost:1883"
+client_id = "hermod-client"
+username = ""
+password = ""
+# Legacy topics (kept for backward compatibility)
+topics = ["#"]
+qos = 1
+
+[database]
+host = "localhost"
+port = 5432
+user = "hermod"
+password = "hermod_password"
+database = "hermod"
+sslmode = "disable"
+pool_size = 10
+
+[pipeline]
+# Legacy pipeline config (kept for backward compatibility)
+lua_script = ""
+table_name = "mqtt_messages"
+
+[logging]
+level = "INFO"
+
+# New routing configuration
+[[routes]]
+filter = "ruuvi/+"
+script = "examples/routing_transform.lua"
+workers = 2
+queue_size = 100
+table = "iot_metrics"
+
+[[routes]]
+filter = "p1ib/#"
+script = ""  # Empty = passthrough
+workers = 1
+queue_size = 50
+table = "p1ib_raw"

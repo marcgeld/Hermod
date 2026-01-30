@@ -3,16 +3,18 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/marcgeld/Hermod/internal/config"
 	"github.com/marcgeld/Hermod/internal/logger"
-	"github.com/marcgeld/Hermod/internal/lua"
 	"github.com/marcgeld/Hermod/internal/mqtt"
-	"github.com/marcgeld/Hermod/internal/pipeline"
+	"github.com/marcgeld/Hermod/internal/router"
+	"github.com/marcgeld/Hermod/internal/schema"
 	"github.com/marcgeld/Hermod/internal/storage"
 )
 
@@ -24,10 +26,12 @@ var (
 
 func main() {
 	dryRun := false
+	sqlFlag := false
 	configPath := flag.String("config", "config.toml", "Path to configuration file")
 	versionFlag := flag.Bool("version", false, "Print version information")
 	flag.BoolVar(&dryRun, "dry-run", false, "Don't execute SQL statements, just log them")
-	logLvl := flag.String("log", "config.toml", "Log level DEBUG, INFO, or ERROR (overrides config file)")
+	flag.BoolVar(&sqlFlag, "sql", false, "Generate SQL schema from Lua scripts and exit")
+	logLvl := flag.String("log", "", "Log level DEBUG, INFO, or ERROR (overrides config file)")
 	flag.Parse()
 
 	if *versionFlag {
@@ -35,13 +39,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Printf("Starting Hermod %s...", version)
-
 	// Load configuration
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	// Handle -sql flag: generate schema and exit
+	if sqlFlag {
+		if err := generateSQL(cfg); err != nil {
+			log.Fatalf("Failed to generate SQL: %v", err)
+		}
+		return
+	}
+
+	log.Printf("Starting Hermod %s...", version)
 
 	// Initialize logger
 	logLevel := logger.INFO
@@ -73,19 +85,16 @@ func main() {
 		appLogger.Info("Storage initialized successfully")
 	}
 
-	// Initialize Lua transformer if script is provided
-	var transformer *lua.Transformer
-	if cfg.Pipeline.LuaScript != "" {
-		transformer, err = lua.New(cfg.Pipeline.LuaScript)
-		if err != nil {
-			log.Fatalf("Failed to initialize Lua transformer: %v", err)
-		}
-		defer transformer.Close()
-		appLogger.Info("Lua transformer initialized successfully")
-	}
+	// Build routes from configuration
+	routes := buildRoutes(cfg)
 
-	// Initialize pipeline
-	pipe := pipeline.New(transformer, store, appLogger)
+	// Initialize router
+	r, err := router.New(ctx, routes, store, appLogger)
+	if err != nil {
+		log.Fatalf("Failed to initialize router: %v", err)
+	}
+	defer r.Close()
+	appLogger.Info("Router initialized successfully")
 
 	// Initialize MQTT client
 	mqttCfg := mqtt.Config{
@@ -102,13 +111,41 @@ func main() {
 	}
 	defer client.Disconnect()
 
-	// Subscribe to topics
-	for _, topic := range cfg.MQTT.Topics {
-		err := client.Subscribe(topic, cfg.MQTT.QoS, func(topic string, payload []byte) error {
-			return pipe.Process(ctx, topic, payload)
-		})
-		if err != nil {
-			log.Fatalf("Failed to subscribe to topic %s: %v", topic, err)
+	// Subscribe to topics using router
+	// If routes are configured, subscribe to each route's filter
+	// Otherwise, fall back to legacy topics from config
+	if len(routes) > 0 {
+		for _, route := range routes {
+			err := client.Subscribe(route.Filter, cfg.MQTT.QoS, func(topic string, payload []byte) error {
+				msg := router.Message{
+					Topic:   topic,
+					Payload: payload,
+					QoS:     cfg.MQTT.QoS,
+					Retain:  false, // MQTT callback doesn't provide retain flag easily
+					Time:    time.Now().UTC(),
+				}
+				return r.Dispatch(msg)
+			})
+			if err != nil {
+				log.Fatalf("Failed to subscribe to topic %s: %v", route.Filter, err)
+			}
+		}
+	} else {
+		// Legacy mode: subscribe to topics from config
+		for _, topic := range cfg.MQTT.Topics {
+			err := client.Subscribe(topic, cfg.MQTT.QoS, func(topic string, payload []byte) error {
+				msg := router.Message{
+					Topic:   topic,
+					Payload: payload,
+					QoS:     cfg.MQTT.QoS,
+					Retain:  false,
+					Time:    time.Now().UTC(),
+				}
+				return r.Dispatch(msg)
+			})
+			if err != nil {
+				log.Fatalf("Failed to subscribe to topic %s: %v", topic, err)
+			}
 		}
 	}
 
@@ -120,4 +157,81 @@ func main() {
 	<-sigChan
 
 	appLogger.Info("Shutting down Hermod...")
+}
+
+// buildRoutes creates router.Route from config
+func buildRoutes(cfg *config.Config) []router.Route {
+	if len(cfg.Routes) > 0 {
+		// Use new routes configuration
+		routes := make([]router.Route, len(cfg.Routes))
+		for i, rc := range cfg.Routes {
+			routes[i] = router.Route{
+				Filter:    rc.Filter,
+				Script:    rc.Script,
+				Workers:   rc.Workers,
+				QueueSize: rc.QueueSize,
+				Table:     rc.Table,
+			}
+		}
+		return routes
+	}
+
+	// Backward compatibility: create a single route from legacy config
+	if cfg.Pipeline.LuaScript != "" || len(cfg.MQTT.Topics) > 0 {
+		// If only one topic, use it as filter
+		filter := "#" // Default: match all
+		if len(cfg.MQTT.Topics) == 1 {
+			filter = cfg.MQTT.Topics[0]
+		}
+		return []router.Route{
+			{
+				Filter:    filter,
+				Script:    cfg.Pipeline.LuaScript,
+				Workers:   1,
+				QueueSize: 100,
+				Table:     cfg.Pipeline.TableName,
+			},
+		}
+	}
+
+	// No routes configured, return empty (all messages go to passthrough)
+	return []router.Route{}
+}
+
+// generateSQL loads all Lua scripts and generates SQL schema
+func generateSQL(cfg *config.Config) error {
+	var schemas []*schema.Schema
+
+	// Load schema from each route's Lua script
+	for _, route := range cfg.Routes {
+		if route.Script != "" {
+			s, err := schema.LoadFromLuaScript(route.Script)
+			if err != nil {
+				return fmt.Errorf("failed to load schema from %s: %w", route.Script, err)
+			}
+			schemas = append(schemas, s)
+		}
+	}
+
+	// Legacy: also check pipeline.lua_script
+	if cfg.Pipeline.LuaScript != "" {
+		s, err := schema.LoadFromLuaScript(cfg.Pipeline.LuaScript)
+		if err != nil {
+			return fmt.Errorf("failed to load schema from %s: %w", cfg.Pipeline.LuaScript, err)
+		}
+		schemas = append(schemas, s)
+	}
+
+	// Merge all schemas
+	merged := schema.Merge(schemas...)
+
+	// Generate SQL
+	sql := merged.GenerateSQL()
+	if sql == "" {
+		fmt.Println("-- No schemas defined in Lua scripts")
+		return nil
+	}
+
+	fmt.Println(sql)
+	return nil
 }

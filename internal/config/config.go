@@ -13,6 +13,7 @@ type Config struct {
 	Database DatabaseConfig `toml:"database"`
 	Pipeline PipelineConfig `toml:"pipeline"`
 	Logging  LoggingConfig  `toml:"logging"`
+	Routes   []RouteConfig  `toml:"routes"` // New routing configuration
 }
 
 // MQTTConfig holds MQTT broker configuration
@@ -45,6 +46,15 @@ type PipelineConfig struct {
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
 	Level string `toml:"level"` // DEBUG, INFO, or ERROR
+}
+
+// RouteConfig holds a single route configuration
+type RouteConfig struct {
+	Filter    string `toml:"filter"`     // MQTT topic filter (e.g., "ruuvi/+", "p1ib/#")
+	Script    string `toml:"script"`     // Path to Lua script (empty = passthrough)
+	Workers   int    `toml:"workers"`    // Number of worker goroutines (default: 1)
+	QueueSize int    `toml:"queue_size"` // Buffered channel size (default: 100)
+	Table     string `toml:"table"`      // Default table name (default: iot_data)
 }
 
 // Load reads and parses the TOML configuration file
