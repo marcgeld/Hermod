@@ -16,11 +16,23 @@ import (
 	"github.com/marcgeld/Hermod/internal/storage"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	configPath := flag.String("config", "config.toml", "Path to configuration file")
+	versionFlag := flag.Bool("version", false, "Print version information")
 	flag.Parse()
 
-	log.Println("Starting Hermod...")
+	if *versionFlag {
+		log.Printf("Hermod version %s (commit: %s, built: %s)\n", version, commit, date)
+		os.Exit(0)
+	}
+
+	log.Printf("Starting Hermod %s...", version)
 
 	// Load configuration
 	cfg, err := config.Load(*configPath)
