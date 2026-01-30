@@ -41,6 +41,23 @@ go mod download
 go build -o hermod cmd/hermod/main.go
 ```
 
+### Container Image
+
+Hermod is available as a multi-arch container image supporting `linux/amd64` and `linux/arm64`:
+
+```bash
+# Pull the latest version
+docker pull ghcr.io/marcgeld/hermod:latest
+
+# Pull a specific version
+docker pull ghcr.io/marcgeld/hermod:v1.0.0
+
+# Run with a config file
+docker run -v $(pwd)/config.toml:/config.toml ghcr.io/marcgeld/hermod:latest -config /config.toml
+```
+
+The container image is built on distroless for minimal size and enhanced security, running as a non-root user.
+
 ## Configuration
 
 Create a `config.toml` file (see `examples/config.toml` for a complete example):
