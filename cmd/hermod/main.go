@@ -16,11 +16,29 @@ import (
 	"github.com/marcgeld/Hermod/internal/storage"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	dryRun := false
 	configPath := flag.String("config", "config.toml", "Path to configuration file")
+<<<<<<< Updated upstream
+	versionFlag := flag.Bool("version", false, "Print version information")
+=======
+	flag.BoolVar(&dryRun, "dry-run", false, "Don't execute SQL statements, just log them")
+	logLvl := flag.String("log", "config.toml", "Log level DEBUG, INFO, or ERROR (overrides config file)")
+>>>>>>> Stashed changes
 	flag.Parse()
 
-	log.Println("Starting Hermod...")
+	if *versionFlag {
+		log.Printf("Hermod version %s (commit: %s, built: %s)\n", version, commit, date)
+		os.Exit(0)
+	}
+
+	log.Printf("Starting Hermod %s...", version)
 
 	// Load configuration
 	cfg, err := config.Load(*configPath)
@@ -30,7 +48,9 @@ func main() {
 
 	// Initialize logger
 	logLevel := logger.INFO
-	if cfg.Logging.Level != "" {
+	if logLvl != nil && *logLvl != "" {
+		logLevel = logger.ParseLevel(*logLvl)
+	} else if cfg.Logging.Level != "" {
 		logLevel = logger.ParseLevel(cfg.Logging.Level)
 	}
 	appLogger := logger.New(logLevel)
@@ -42,7 +62,7 @@ func main() {
 	storageCfg := storage.Config{
 		ConnectionString: cfg.Database.ConnectionString(),
 		TableName:        cfg.Pipeline.TableName,
-		DryRun:           cfg.Logging.DryRun,
+		DryRun:           dryRun,
 		Logger:           appLogger,
 	}
 	store, err := storage.New(ctx, storageCfg)
@@ -50,7 +70,7 @@ func main() {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 	defer store.Close()
-	if cfg.Logging.DryRun {
+	if dryRun {
 		appLogger.Info("Running in dry-run mode - SQL will be logged instead of executed")
 	} else {
 		appLogger.Info("Storage initialized successfully")

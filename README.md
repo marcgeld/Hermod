@@ -28,7 +28,7 @@ Hermod acts as a bridge between MQTT-based IoT devices and a time-series databas
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.25.6 or later
 - PostgreSQL 12+ or TimescaleDB 2.0+
 - MQTT broker (e.g., Mosquitto, EMQX)
 
@@ -40,6 +40,23 @@ cd Hermod
 go mod download
 go build -o hermod cmd/hermod/main.go
 ```
+
+### Container Image
+
+Hermod is available as a multi-arch container image supporting `linux/amd64` and `linux/arm64`:
+
+```bash
+# Pull the latest version
+docker pull ghcr.io/marcgeld/hermod:latest
+
+# Pull a specific version
+docker pull ghcr.io/marcgeld/hermod:v1.0.0
+
+# Run with a config file
+docker run -v $(pwd)/config.toml:/config.toml ghcr.io/marcgeld/hermod:latest -config /config.toml
+```
+
+The container image is built on distroless for minimal size and enhanced security, running as a non-root user.
 
 ## Configuration
 
@@ -67,7 +84,6 @@ table_name = "mqtt_messages"
 
 [logging]
 level = "INFO"       # DEBUG, INFO, or ERROR
-dry_run = false      # Set to true to log SQL instead of executing
 ```
 
 ### Configuration Options
@@ -95,7 +111,6 @@ dry_run = false      # Set to true to log SQL instead of executing
 
 #### Logging Section
 - `level`: Log level - `DEBUG` (verbose, shows message content), `INFO` (general events), or `ERROR` (errors only)
-- `dry_run`: If `true`, logs SQL statements instead of executing them (useful for testing without database connection)
 
 ## Database Setup
 

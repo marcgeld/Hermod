@@ -44,8 +44,7 @@ type PipelineConfig struct {
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Level  string `toml:"level"`  // DEBUG, INFO, or ERROR
-	DryRun bool   `toml:"dry_run"` // If true, log SQL instead of executing
+	Level string `toml:"level"` // DEBUG, INFO, or ERROR
 }
 
 // Load reads and parses the TOML configuration file
