@@ -178,20 +178,22 @@ Hermod uses Go's standard logging framework with configurable log levels:
 
 ### Dry-Run Mode
 
-Set `dry_run = true` in the `[logging]` section to run Hermod without connecting to the database. In this mode:
-- SQL statements are logged instead of being executed
-- No database connection is required
-- Useful for testing configurations and transformations
+Dry-run is a command-line flag (not a configuration option in `config.toml`). Start Hermod with the `-dry_run` flag (or `--dry-run`) to enable dry-run behavior. In this mode:
 
-Example configuration for debugging:
+- No database connection is opened.
+- SQL statements are logged instead of being executed.
+- Useful for testing configurations, transformations, and generated SQL without affecting the database.
 
-```toml
-[logging]
-level = "DEBUG"
-dry_run = true
+Example invocations:
+
+```bash
+./hermod -config /path/to/config.toml -dry_run
+# or
+./hermod --dry-run -config /path/to/config.toml
 ```
 
-Example output with DEBUG level:
+Example output (when `logging.level` is `DEBUG`):
+
 ```
 DEBUG: Received message from topic 'sensors/temperature': {"temperature": 25.5}
 DEBUG: Transforming message data
