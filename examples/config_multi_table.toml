@@ -1,0 +1,30 @@
+# Test config for multi-table schema generation
+
+[mqtt]
+broker = "tcp://localhost:1883"
+client_id = "hermod-test"
+topics = ["sensors/#"]
+qos = 1
+
+[database]
+host = "localhost"
+port = 5432
+user = "hermod"
+password = "password"
+database = "hermod"
+sslmode = "disable"
+pool_size = 10
+
+[pipeline]
+lua_script = ""
+table_name = "mqtt_messages"
+
+[logging]
+level = "INFO"
+
+[[routes]]
+filter = "sensors/+"
+script = "examples/multi_table.lua"
+workers = 2
+queue_size = 100
+table = "sensor_readings"

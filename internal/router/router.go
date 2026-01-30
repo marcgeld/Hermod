@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/marcgeld/Hermod/internal/logger"
+	"github.com/marcgeld/Hermod/internal/schema"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -59,6 +60,7 @@ type routeHandler struct {
 type worker struct {
 	id      int
 	state   *lua.LState
+	schema  *schema.Schema // Schema for validation
 	msgChan chan Message
 	storage Storage
 	logger  *logger.Logger
@@ -164,6 +166,14 @@ func newWorker(id int, scriptPath string, defaultTable string, msgChan chan Mess
 			return nil, fmt.Errorf("failed to load Lua script: %w", err)
 		}
 		w.state = L
+
+		// Load schema for validation (if exists)
+		s, err := loadSchemaFromState(L)
+		if err != nil {
+			L.Close()
+			return nil, fmt.Errorf("failed to load schema: %w", err)
+		}
+		w.schema = s
 	}
 
 	return w, nil
@@ -216,6 +226,16 @@ func (w *worker) process(msg Message) error {
 		if table == "" {
 			table = w.table
 		}
+
+		// Validate against schema if available
+		if w.schema != nil {
+			if tableSchema, ok := w.schema.Tables[table]; ok {
+				if err := tableSchema.ValidateRecord(rec.Columns); err != nil {
+					return fmt.Errorf("schema validation failed for table %s: %w", table, err)
+				}
+			}
+		}
+
 		if err := w.storage.InsertIntoTable(w.ctx, table, rec.Columns); err != nil {
 			return fmt.Errorf("failed to insert into %s: %w", table, err)
 		}
@@ -274,7 +294,8 @@ func (w *worker) parseRecords(tbl *lua.LTable) ([]Record, error) {
 	// Check if it's an array
 	maxN := tbl.MaxN()
 	if maxN == 0 {
-		return nil, fmt.Errorf("transform must return an array of records")
+		// Empty array is OK - no records to insert
+		return records, nil
 	}
 
 	for i := 1; i <= maxN; i++ {
@@ -487,4 +508,77 @@ func lvalueToInterface(lv lua.LValue) interface{} {
 		}
 		return v.String()
 	}
+}
+
+// loadSchemaFromState loads schema from an existing Lua state
+func loadSchemaFromState(L *lua.LState) (*schema.Schema, error) {
+	schemaLV := L.GetGlobal("schema")
+	if schemaLV.Type() == lua.LTNil {
+		// No schema defined - this is OK
+		return &schema.Schema{Tables: make(map[string]*schema.TableSchema)}, nil
+	}
+
+	if schemaLV.Type() != lua.LTTable {
+		return nil, fmt.Errorf("schema must be a table")
+	}
+
+	schemaTable := schemaLV.(*lua.LTable)
+	tablesLV := schemaTable.RawGetString("tables")
+	if tablesLV.Type() == lua.LTNil {
+		return &schema.Schema{Tables: make(map[string]*schema.TableSchema)}, nil
+	}
+
+	if tablesLV.Type() != lua.LTTable {
+		return nil, fmt.Errorf("schema.tables must be a table")
+	}
+
+	s := &schema.Schema{
+		Tables: make(map[string]*schema.TableSchema),
+	}
+
+	tablesTable := tablesLV.(*lua.LTable)
+	tablesTable.ForEach(func(key, value lua.LValue) {
+		tableName, ok := key.(lua.LString)
+		if !ok {
+			return
+		}
+
+		if value.Type() != lua.LTTable {
+			return
+		}
+
+		tableNameStr := string(tableName)
+		if !validIdentifier.MatchString(tableNameStr) {
+			return
+		}
+
+		tableSchema := &schema.TableSchema{
+			Name:    tableNameStr,
+			Columns: make(map[string]string),
+		}
+
+		columnsTable := value.(*lua.LTable)
+		columnsTable.ForEach(func(colKey, colValue lua.LValue) {
+			colName, ok := colKey.(lua.LString)
+			if !ok {
+				return
+			}
+
+			colType, ok := colValue.(lua.LString)
+			if !ok {
+				return
+			}
+
+			colNameStr := string(colName)
+			if !validIdentifier.MatchString(colNameStr) {
+				return
+			}
+
+			tableSchema.Columns[colNameStr] = string(colType)
+		})
+
+		s.Tables[tableNameStr] = tableSchema
+	})
+
+	return s, nil
 }
