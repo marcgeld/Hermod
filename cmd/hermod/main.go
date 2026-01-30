@@ -25,12 +25,9 @@ var (
 func main() {
 	dryRun := false
 	configPath := flag.String("config", "config.toml", "Path to configuration file")
-<<<<<<< Updated upstream
 	versionFlag := flag.Bool("version", false, "Print version information")
-=======
 	flag.BoolVar(&dryRun, "dry-run", false, "Don't execute SQL statements, just log them")
 	logLvl := flag.String("log", "config.toml", "Log level DEBUG, INFO, or ERROR (overrides config file)")
->>>>>>> Stashed changes
 	flag.Parse()
 
 	if *versionFlag {
