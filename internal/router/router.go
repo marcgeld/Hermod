@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/marcgeld/Hermod/internal/logger"
-	"github.com/marcgeld/Hermod/internal/schema"
+	"github.com/marcgeld/hermod/internal/logger"
+	"github.com/marcgeld/hermod/internal/schema"
 	lua "github.com/yuin/gopher-lua"
 )
 

@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/marcgeld/Hermod/internal/config"
-	"github.com/marcgeld/Hermod/internal/logger"
-	"github.com/marcgeld/Hermod/internal/mqtt"
-	"github.com/marcgeld/Hermod/internal/router"
-	"github.com/marcgeld/Hermod/internal/schema"
-	"github.com/marcgeld/Hermod/internal/storage"
+	"github.com/marcgeld/hermod/internal/config"
+	"github.com/marcgeld/hermod/internal/logger"
+	"github.com/marcgeld/hermod/internal/mqtt"
+	"github.com/marcgeld/hermod/internal/router"
+	"github.com/marcgeld/hermod/internal/schema"
+	"github.com/marcgeld/hermod/internal/storage"
 )
 
 var (
