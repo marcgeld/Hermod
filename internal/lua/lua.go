@@ -112,7 +112,7 @@ func (t *Transformer) interfaceToLValue(i interface{}) lua.LValue {
 			log.Printf("Warning: failed to marshal value to JSON: %v", err)
 			return lua.LString(fmt.Sprintf("%v", v))
 		}
-		return lua.LString(string(data))
+		return lua.LString(data)
 	}
 }
 
