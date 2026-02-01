@@ -318,3 +318,84 @@ end
 		t.Errorf("Transform() error = %v", err)
 	}
 }
+
+// New test: ensure rot13 Go function is available to Lua scripts
+func TestRot13Function(t *testing.T) {
+	scriptCode := `
+function transform(data)
+    local out = {}
+    out.original = data.text
+    out.rot = rot13(data.text)
+    return out
+end
+`
+	tmpDir := t.TempDir()
+	scriptPath := filepath.Join(tmpDir, "test_rot13.lua")
+	if err := os.WriteFile(scriptPath, []byte(scriptCode), 0644); err != nil {
+		t.Fatalf("failed to write test script: %v", err)
+	}
+
+	transformer, err := New(scriptPath)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer transformer.Close()
+
+	input := map[string]interface{}{"text": "Hello, World!"}
+	got, err := transformer.Transform(input)
+	if err != nil {
+		t.Fatalf("Transform() error = %v", err)
+	}
+
+	if got["original"] != "Hello, World!" {
+		t.Errorf("unexpected original: %v", got["original"])
+	}
+	if got["rot"] != "Uryyb, Jbeyq!" {
+		t.Errorf("unexpected rot13 result: %v", got["rot"])
+	}
+}
+
+// New test: ensure base64 encode/decode Go functions are available to Lua scripts
+func TestBase64Functions(t *testing.T) {
+	scriptCode := `
+function transform(data)
+    local out = {}
+    out.original = data.text
+    out.encoded = base64_encode(data.text)
+    local decoded, err = base64_decode(out.encoded)
+    out.decoded = decoded
+    out.decode_err = err
+    return out
+end
+`
+	tmpDir := t.TempDir()
+	scriptPath := filepath.Join(tmpDir, "test_base64.lua")
+	if err := os.WriteFile(scriptPath, []byte(scriptCode), 0644); err != nil {
+		t.Fatalf("failed to write test script: %v", err)
+	}
+
+	transformer, err := New(scriptPath)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer transformer.Close()
+
+	input := map[string]interface{}{"text": "Hello, World!"}
+	got, err := transformer.Transform(input)
+	if err != nil {
+		t.Fatalf("Transform() error = %v", err)
+	}
+
+	if got["original"] != "Hello, World!" {
+		t.Errorf("unexpected original: %v", got["original"])
+	}
+	if got["encoded"] != "SGVsbG8sIFdvcmxkIQ==" {
+		t.Errorf("unexpected base64 encoded: %v", got["encoded"])
+	}
+	if got["decoded"] != "Hello, World!" {
+		t.Errorf("unexpected base64 decoded: %v", got["decoded"])
+	}
+	if got["decode_err"] != nil {
+		t.Errorf("expected decode_err to be nil, got: %v", got["decode_err"])
+	}
+}
