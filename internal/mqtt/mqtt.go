@@ -7,7 +7,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/marcgeld/Hermod/internal/logger"
+	"github.com/marcgeld/hermod/internal/logger"
 )
 
 // Client represents an MQTT client wrapper.

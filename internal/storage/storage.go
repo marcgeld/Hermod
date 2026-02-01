@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/marcgeld/Hermod/internal/logger"
+	"github.com/marcgeld/hermod/internal/logger"
 )
 
 // Storage handles database operations

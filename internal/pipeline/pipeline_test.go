@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/marcgeld/Hermod/internal/lua"
+	"github.com/marcgeld/hermod/internal/lua"
 )
 
 // StorageInterface defines the interface needed by Pipeline for testing

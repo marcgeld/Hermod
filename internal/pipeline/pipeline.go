@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/marcgeld/Hermod/internal/logger"
-	"github.com/marcgeld/Hermod/internal/lua"
-	"github.com/marcgeld/Hermod/internal/storage"
+	"github.com/marcgeld/hermod/internal/logger"
+	"github.com/marcgeld/hermod/internal/lua"
+	"github.com/marcgeld/hermod/internal/storage"
 )
 
 // Pipeline orchestrates message processing
