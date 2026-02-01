@@ -52,7 +52,7 @@ Hermod acts as a bridge between MQTT-based IoT devices and a time-series databas
 
 ```bash
 git clone https://github.com/marcgeld/Hermod.git
-cd Hermod
+cd hermod
 go mod download
 go build -o hermod cmd/hermod/main.go
 ```

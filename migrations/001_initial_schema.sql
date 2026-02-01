@@ -1,5 +1,5 @@
--- Hermod Database Migration
--- This script sets up the database schema for Hermod
+-- hermod Database Migration
+-- This script sets up the database schema for hermod
 
 -- Create the main table for MQTT messages
 CREATE TABLE IF NOT EXISTS mqtt_messages (

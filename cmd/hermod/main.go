@@ -35,7 +35,7 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		log.Printf("Hermod version %s (commit: %s, built: %s)\n", version, commit, date)
+		log.Printf("hermod version %s (commit: %s, built: %s)\n", version, commit, date)
 		os.Exit(0)
 	}
 
@@ -53,7 +53,7 @@ func main() {
 		return
 	}
 
-	log.Printf("Starting Hermod %s...", version)
+	log.Printf("Starting hermod %s...", version)
 
 	// Initialize logger
 	logLevel := logger.INFO
@@ -149,14 +149,14 @@ func main() {
 		}
 	}
 
-	appLogger.Info("Hermod is running. Press Ctrl+C to exit.")
+	appLogger.Info("hermod is running. Press Ctrl+C to exit.")
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan
 
-	appLogger.Info("Shutting down Hermod...")
+	appLogger.Info("Shutting down hermod...")
 }
 
 // buildRoutes creates router.Route from config

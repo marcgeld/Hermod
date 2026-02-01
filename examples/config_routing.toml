@@ -1,4 +1,4 @@
-# Hermod Configuration with Routing Example
+# hermod Configuration with Routing Example
 
 [mqtt]
 broker = "tcp://localhost:1883"
