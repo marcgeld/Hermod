@@ -22,3 +22,13 @@ pool_size = 10
 # Leave empty to skip transformation
 lua_script = "examples/transform.lua"
 table_name = "mqtt_messages"
+
+[logging]
+# Log level: DEBUG (verbose), INFO (general events), or ERROR (errors only)
+# DEBUG level shows message content when it arrives and after transformation
+# INFO level shows general events like connections and message processing
+level = "INFO"
+
+# Dry-run mode: if true, logs SQL statements instead of executing them
+# Useful for testing without connecting to a database
+dry_run = false
