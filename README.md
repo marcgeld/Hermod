@@ -332,7 +332,7 @@ CREATE USER hermod WITH PASSWORD 'hermod_password';
 GRANT ALL PRIVILEGES ON DATABASE hermod TO hermod;
 ```
 
-2. Generate and apply schema:
+1.Generate and apply schema:
 
 ```bash
 # Generate SQL from Lua scripts
