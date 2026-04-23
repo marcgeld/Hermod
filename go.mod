@@ -1,13 +1,11 @@
 module github.com/marcgeld/hermod
 
-go 1.24.0
-
-toolchain go1.24.12
+go 1.25.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/eclipse/paho.mqtt.golang v1.5.1
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/yuin/gopher-lua v1.1.1
 )
 
