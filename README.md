@@ -177,6 +177,23 @@ Each `[[routes]]` block defines a route:
 #### Logging Section
 - `level`: Log level - `DEBUG` (verbose, shows message content), `INFO` (general events), or `ERROR` (errors only)
 
+#### Script Lookup Order and -scriptdir flag
+
+Hermod supports an optional command-line flag `-scriptdir` (or `--scriptdir`) which tells the program to look for Lua scripts in that directory before searching near the configuration file. The lookup order for a referenced script path is:
+
+1. If `-scriptdir` is provided: look for the script in `-scriptdir` (exact path and its basename).
+2. Look in the same directory as the `config.toml` file (exact path and basename).
+3. Look in a `scripts/` subdirectory next to the `config.toml` file (both `scripts/<path>` and `scripts/<basename>`).
+
+If the script is provided as an absolute path or exists relative to the current working directory, Hermod will use it as given.
+
+Use example:
+
+```bash
+# Prefer scripts in /opt/hermod/scripts
+hermod -config /etc/hermod/config.toml -scriptdir /opt/hermod/scripts
+```
+
 ## Lua Transformations
 
 ### New Transform Contract
