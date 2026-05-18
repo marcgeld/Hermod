@@ -35,7 +35,7 @@ go.work.sum
 /hermod
 
 # Config files with sensitive data
-config.toml
+local_config/config.toml
 !examples/config.toml
 
 .idea/
