@@ -108,7 +108,7 @@ func registerFunctions(L *lua.LState) {
 			L.Push(lua.LString(err.Error()))
 			return 2
 		}
-		L.Push(lua.LString(string(data)))
+		L.Push(lua.LString(data))
 		L.Push(lua.LNil)
 		return 2
 	}))
@@ -130,7 +130,7 @@ func registerFunctions(L *lua.LState) {
 			L.Push(lua.LString(err.Error()))
 			return 2
 		}
-		L.Push(lua.LString(string(data)))
+		L.Push(lua.LString(data))
 		L.Push(lua.LNil)
 		return 2
 	}))
@@ -155,7 +155,7 @@ func registerFunctions(L *lua.LState) {
 			L.Push(lua.LString(err.Error()))
 			return 2
 		}
-		L.Push(lua.LString(string(b)))
+		L.Push(lua.LString(b))
 		L.Push(lua.LNil)
 		return 2
 	}))
